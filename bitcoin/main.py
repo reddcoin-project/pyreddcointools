@@ -219,7 +219,7 @@ def get_privkey_format(priv):
         elif len(bin_p) == 33: return 'wif_compressed'
         else: raise Exception("WIF does not represent privkey")
 
-def encode_privkey(priv, formt, vbyte=0):
+def encode_privkey(priv, formt, vbyte=61):
     if not isinstance(priv, int_types):
         return encode_privkey(decode_privkey(priv), formt, vbyte)
     if formt == 'decimal': return priv

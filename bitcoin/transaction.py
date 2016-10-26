@@ -248,7 +248,7 @@ def address_to_script(addr):
 # Output script to address representation
 
 
-def script_to_address(script, vbyte=0):
+def script_to_address(script, vbyte=61):
     if re.match('^[0-9a-fA-F]*$', script):
         script = binascii.unhexlify(script)
     if script[:3] == b'\x76\xa9\x14' and script[-2:] == b'\x88\xac' and len(script) == 25:
@@ -257,7 +257,7 @@ def script_to_address(script, vbyte=0):
         if vbyte in [111, 196]:
             # Testnet
             scripthash_byte = 196
-        elif vbyte == 0:
+        elif vbyte == 61:
             # Mainnet
             scripthash_byte = 5
         else:
