@@ -91,6 +91,7 @@ def deserialize(tx):
             "script": read_var_string()
         })
     obj["locktime"] = read_as_int(4)
+    obj["time"] = read_as_int(4) # Reddcoin PoSV
     return obj
 
 def serialize(txobj):
@@ -113,6 +114,7 @@ def serialize(txobj):
         o.append(encode(out["value"], 256, 8)[::-1])
         o.append(num_to_var_int(len(out["script"]))+out["script"])
     o.append(encode(txobj["locktime"], 256, 4)[::-1])
+    o.append(encode(txobj["time"], 256, 4)[::-1]) # Reddcoin PoSV
 
     return ''.join(o) if is_python2 else reduce(lambda x,y: x+y, o, bytes())
 
