@@ -1,6 +1,6 @@
 #!/usr/bin/python
 import binascii, re, json, copy, sys
-from bitcoin.main import *
+from pyreddcointools.main import *
 from _functools import reduce
 
 ### Hex to bin converter and vice versa for objects
@@ -139,8 +139,9 @@ def signature_form(tx, i, script, hashcode=SIGHASH_ALL):
     if hashcode == SIGHASH_NONE:
         newtx["outs"] = []
     elif hashcode == SIGHASH_SINGLE:
-        newtx["outs"] = newtx["outs"][:len(newtx["ins"])]
-        for out in newtx["outs"][:len(newtx["ins"]) - 1]:
+        num_ins = len(newtx["ins"])
+        newtx["outs"] = newtx["outs"][:num_ins]
+        for out in newtx["outs"][:num_ins - 1]:     # del outs @ lower index
             out['value'] = 2**64 - 1
             out['script'] = ""
     elif hashcode == SIGHASH_ANYONECANPAY:
@@ -152,32 +153,46 @@ def signature_form(tx, i, script, hashcode=SIGHASH_ALL):
 # Making the actual signatures
 
 
-def der_encode_sig(v, r, s):
-    b1, b2 = safe_hexlify(encode(r, 256)), safe_hexlify(encode(s, 256))
-    if len(b1) and b1[0] in '89abcdef':
-        b1 = '00' + b1
-    if len(b2) and b2[0] in '89abcdef':
-        b2 = '00' + b2
-    left = '02'+encode(len(b1)//2, 16, 2)+b1
-    right = '02'+encode(len(b2)//2, 16, 2)+b2
-    return '30'+encode(len(left+right)//2, 16, 2)+left+right
+def der_encode_sig(*args):
+    """Takes ([vbyte], r, s) as ints and returns hex der encode sig"""
+    if len(args) == 3:
+        v,r,s = args
+    elif len(args) == 2:
+        r,s = args
+    elif len(args) == 1 and isinstance(args[0], tuple):
+        return der_encode_sig(*args[0])
+    b1, b2 = encode(r, 256), encode(s, 256)
+    if len(b1) and changebase(b1[0], 256, 16, 1) in "89abcdef": # add null bytes if interpreted as negative number
+        b1 = b'\x00' + b1
+    if len(b2) and ord(b2[0]) & 0x80:
+        b2 = b'\x00' + b2
+    left  = b'\x02' + encode(len(b1), 256, 1) + b1
+    right = b'\x02' + encode(len(b2), 256, 1) + b2
+    sighex = safe_hexlify(b'\x30' + encode(len(left+right), 256, 1) + left + right)
+    #assert is_bip66(sighex)
+    return sighex
+
 
 def der_decode_sig(sig):
+    """Takes DER sig (incl. hashcode), returns v,r,s as ints"""
     leftlen = decode(sig[6:8], 16)*2
     left = sig[8:8+leftlen]
     rightlen = decode(sig[10+leftlen:12+leftlen], 16)*2
     right = sig[12+leftlen:12+leftlen+rightlen]
+    #assert 3*2 + leftlen + 3*2 + rightlen + 1*2 == len(sig)    
     return (None, decode(left, 16), decode(right, 16))
 
+RE_HEX_CHARS = re.compile(r"^[0-9a-f]*$", re.I)
+
 def is_bip66(sig):
-    """Checks hex DER sig for BIP66 consistency"""
+    """Checks hex DER sig for BIP66 compliance"""
     #https://raw.githubusercontent.com/bitcoin/bips/master/bip-0066.mediawiki
     #0x30  [total-len]  0x02  [R-len]  [R]  0x02  [S-len]  [S]  [sighash]
-    sig = bytearray.fromhex(sig) if re.match('^[0-9a-fA-F]*$', sig) else bytearray(sig)
-    if (sig[0] == 0x30) and (sig[1] == len(sig)-2):     # check if sighash is missing
-            sig.extend(b"\1")		                   	# add SIGHASH_ALL for testing
-    #assert (sig[-1] & 124 == 0) and (not not sig[-1]), "Bad SIGHASH value"
-    
+    sig = bytearray.fromhex(sig) if (isinstance(sig, string_types) and
+             RE_HEX_CHARS.match(sig)) else bytearray(sig)
+    if sig[1] == len(sig)-2: 
+        sig.extend(b"\1")       # add SIGHASH for BIP66 check
+
     if len(sig) < 9 or len(sig) > 73: return False
     if (sig[0] != 0x30): return False
     if (sig[1] != len(sig)-3): return False
@@ -188,12 +203,12 @@ def is_bip66(sig):
     if (sig[2] != 0x02): return False
     if (rlen == 0): return False
     if (sig[4] & 0x80): return False
-    if (rlen > 1 and (sig[4] == 0x00) and not (sig[5] & 0x80)): return False
+    if (rlen > 1 and (sig[4] == 0) and not (sig[5] & 0x80)): return False
     if (sig[4+rlen] != 0x02): return False
     if (slen == 0): return False
     if (sig[rlen+6] & 0x80): return False
-    if (slen > 1 and (sig[6+rlen] == 0x00) and not (sig[7+rlen] & 0x80)):
-        return False
+    if (slen > 1 and (sig[6+rlen] == 0) and not (sig[7+rlen] & 0x80)): return False
+    
     return True
 
 def txhash(tx, hashcode=None):
@@ -248,7 +263,7 @@ def address_to_script(addr):
 # Output script to address representation
 
 
-def script_to_address(script, vbyte=61):
+def script_to_address(script, vbyte=111):
     if re.match('^[0-9a-fA-F]*$', script):
         script = binascii.unhexlify(script)
     if script[:3] == b'\x76\xa9\x14' and script[-2:] == b'\x88\xac' and len(script) == 25:
