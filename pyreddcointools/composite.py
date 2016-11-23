@@ -1,8 +1,8 @@
-from bitcoin.main import *
-from bitcoin.transaction import *
-from bitcoin.bci import *
-from bitcoin.deterministic import *
-from bitcoin.blocks import *
+from pyreddcointools.main import *
+from pyreddcointools.transaction import *
+from pyreddcointools.bci import *
+from pyreddcointools.deterministic import *
+from pyreddcointools.blocks import *
 
 
 # Takes privkey, address, value (satoshis), fee (satoshis)

@@ -1,5 +1,5 @@
-import bitcoin.main as main
-import bitcoin.transaction as tx
+import pyreddcointools.main as main
+import pyreddcointools.transaction as tx
 
 # Shared secrets and uncovering pay keys
 
