@@ -2,6 +2,22 @@
 import binascii, re, json, copy, sys
 from pyreddcointools.main import *
 from _functools import reduce
+from ecdsa import SigningKey, SECP256k1, util
+
+### Borrowed from Electrum wallet for low_s ecdsa signing
+
+class MySigningKey(SigningKey):
+    """Enforce low S values in signatures"""
+
+    def sign_number(self, number, entropy=None, k=None):
+        curve = SECP256k1
+        G = curve.generator
+        order = G.order()
+        r, s = SigningKey.sign_number(self, number, entropy, k)
+        if s > order/2:
+            s = order - s
+        print("Using new low_s signature")
+        return r, s
 
 ### Hex to bin converter and vice versa for objects
 
@@ -376,6 +392,30 @@ def verify_tx_input(tx, i, script, sig, pub):
 
 
 def sign(tx, i, priv, hashcode=SIGHASH_ALL):
+    i = int(i)
+    if (not is_python2 and isinstance(re, bytes)) or not re.match('^[0-9a-fA-F]*$', tx):
+        return binascii.unhexlify(sign(safe_hexlify(tx), i, priv))
+    if len(priv) <= 33:
+        priv = safe_hexlify(priv)
+    pub = privkey_to_pubkey(priv)
+    address = pubkey_to_address(pub)
+    signing_tx = signature_form(tx, i, mk_pubkey_script(address), hashcode)
+    signing_tx = signing_tx[:-8] + '01000000' #strip the posv timestamp and add the hashcode
+
+    priv = encode_privkey(priv,'hex')
+
+    txhash = hashlib.sha256(hashlib.sha256(signing_tx.decode('hex')).digest()).digest()
+
+    signingkey = MySigningKey.from_string(priv.decode('hex'), curve=SECP256k1)
+    sig = signingkey.sign_digest(txhash, sigencode=util.sigencode_der) +'01'.decode('hex')
+
+    #print ("Is BIP66 complient?? ") + str(is_bip66(sig))
+
+    txobj = deserialize(tx)
+    txobj["ins"][i]["script"] = serialize_script([sig.encode('hex'), pub])
+    return serialize(txobj)
+
+def signold(tx, i, priv, hashcode=SIGHASH_ALL):
     i = int(i)
     if (not is_python2 and isinstance(re, bytes)) or not re.match('^[0-9a-fA-F]*$', tx):
         return binascii.unhexlify(sign(safe_hexlify(tx), i, priv))
