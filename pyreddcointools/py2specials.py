@@ -39,7 +39,7 @@ if sys.version_info.major == 2:
             return lpad(string, get_code_string(frm)[0], minlen)
         return encode(decode(string, frm), to, minlen)
 
-    def bin_to_b58check(inp, magicbyte=111):
+    def bin_to_b58check(inp, magicbyte=61):
         inp_fmtd = chr(int(magicbyte)) + inp
         leadingzbytes = len(re.match('^\x00*', inp_fmtd).group(0))
         checksum = bin_dbl_sha256(inp_fmtd)[:4]

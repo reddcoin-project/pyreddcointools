@@ -279,7 +279,7 @@ def address_to_script(addr):
 # Output script to address representation
 
 
-def script_to_address(script, vbyte=111):
+def script_to_address(script, vbyte=61):
     if re.match('^[0-9a-fA-F]*$', script):
         script = binascii.unhexlify(script)
     if script[:3] == b'\x76\xa9\x14' and script[-2:] == b'\x88\xac' and len(script) == 25:
