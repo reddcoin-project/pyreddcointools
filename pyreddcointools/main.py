@@ -10,7 +10,7 @@ import base64
 import time
 import random
 import hmac
-from bitcoin.ripemd import *
+from pyreddcointools.ripemd import *
 
 # Elliptic curve parameters (secp256k1)
 
@@ -219,7 +219,7 @@ def get_privkey_format(priv):
         elif len(bin_p) == 33: return 'wif_compressed'
         else: raise Exception("WIF does not represent privkey")
 
-def encode_privkey(priv, formt, vbyte=0):
+def encode_privkey(priv, formt, vbyte=61):
     if not isinstance(priv, int_types):
         return encode_privkey(decode_privkey(priv), formt, vbyte)
     if formt == 'decimal': return priv
@@ -300,7 +300,7 @@ def privkey_to_pubkey(privkey):
 privtopub = privkey_to_pubkey
 
 
-def privkey_to_address(priv, magicbyte=0):
+def privkey_to_address(priv, magicbyte=61):
     return pubkey_to_address(privkey_to_pubkey(priv), magicbyte)
 privtoaddr = privkey_to_address
 
@@ -435,7 +435,7 @@ def get_version_byte(inp):
     return ord(data[0])
 
 
-def hex_to_b58check(inp, magicbyte=0):
+def hex_to_b58check(inp, magicbyte=61):
     return bin_to_b58check(binascii.unhexlify(inp), magicbyte)
 
 
@@ -443,7 +443,7 @@ def b58check_to_hex(inp):
     return safe_hexlify(b58check_to_bin(inp))
 
 
-def pubkey_to_address(pubkey, magicbyte=0):
+def pubkey_to_address(pubkey, magicbyte=61):
     if isinstance(pubkey, (list, tuple)):
         pubkey = encode_pubkey(pubkey, 'bin')
     if len(pubkey) in [66, 130]:

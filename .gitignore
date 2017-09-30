@@ -1,2 +1,7 @@
 *.pyc
 *.swp
+/bitcoin.egg-info/
+/pyreddcointools.egg-info/
+/build/
+/dist/
+/venv/

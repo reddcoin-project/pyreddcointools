@@ -1,4 +1,4 @@
-from bitcoin.main import *
+from pyreddcointools.main import *
 
 
 def serialize_header(inp):

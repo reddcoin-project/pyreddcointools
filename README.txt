@@ -1,4 +1,4 @@
-# Pybitcointools, Python library for Bitcoin signatures and transactions
+# Pyreddcointools, Python library for Reddcoin signatures and transactions
 
 ### Advantages:
 
